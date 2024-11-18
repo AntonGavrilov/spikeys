@@ -21,11 +21,11 @@ type result struct {
 	err   error
 }
 
-var reqCount int = 1
+var reqCount = 1
 var ComplitedRequest = 0
 var maxConcurrency int64 = 1
-var benchmarkTimelimit int = 30 //seconds
-var reqTimeout int = 30 //seconds
+var benchmarkTimelimit = 30 //seconds
+var reqTimeout = 30 //seconds
 var sem *semaphore.Weighted
 var results []*result
 var testDuration time.Duration
