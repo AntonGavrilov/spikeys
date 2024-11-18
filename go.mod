@@ -1,4 +1,4 @@
-module spikeys
+module github.com/AntonGavrilov/spikeys
 
 go 1.22.5
 
