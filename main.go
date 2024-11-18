@@ -42,7 +42,11 @@ func main() {
 	pflag.IntP("timelimit", "t", benchmarkTimelimit, "Benchmark timeout")
 	pflag.IntP("timeout", "s", reqTimeout, "Request timeout")
 	pflag.Parse()
-	viper.BindPFlags(pflag.CommandLine)
+	err := viper.BindPFlags(pflag.CommandLine)
+
+	if err != nil {
+		return
+	}
 
 	if len(os.Args) == 1 {
 		fmt.Println("Usage of ./spikeys: [options] [http[s]://]hostname[:port]/path")
@@ -64,11 +68,11 @@ func main() {
 
 	positionalArgs := pflag.Args()
 	address := positionalArgs[0]
-    url, err := url.ParseRequestURI(address)
+	url, err := url.ParseRequestURI(address)
 	if err != nil || url.Scheme == "" || url.Host == "" {
-        fmt.Printf("Error: Invalid URL: %s\n", address)
-        os.Exit(1)
-    }
+		fmt.Printf("Error: Invalid URL: %s\n", address)
+		os.Exit(1)
+	}
 
 	sem = semaphore.NewWeighted(maxConcurrency)
 	results = make([]*result, reqCount)
@@ -83,7 +87,7 @@ func main() {
 		defer func() {
 			done <- struct{}{}
 		}()
-	
+
 		startTime = time.Now()
 		for i := 0; i < reqCount; i++ {
 			err := sem.Acquire(outCtx, 1)
