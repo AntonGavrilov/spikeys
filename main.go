@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -63,14 +64,20 @@ func main() {
 
 	positionalArgs := pflag.Args()
 	address := positionalArgs[0]
+    url, err := url.ParseRequestURI(address)
+	if err != nil || url.Scheme == "" || url.Host == "" {
+        fmt.Printf("Error: Invalid URL: %s\n", address)
+        os.Exit(1)
+    }
+
 	sem = semaphore.NewWeighted(maxConcurrency)
 	results = make([]*result, reqCount)
-	u, _ := url.Parse(address)
 
-	fmt.Println("Benchmarking ", u.Hostname(), "...")
+	fmt.Println("Benchmarking ", url.Hostname(), "...")
 	var startTime time.Time
 	done := make(chan struct{})
-	outCtx, outCancel := context.WithTimeout(context.Background(), time.Duration(benchmarkTimelimit)*time.Second)
+	outCtx, cancel := context.WithTimeout(context.Background(), time.Duration(benchmarkTimelimit)*time.Second)
+	defer cancel()
 
 	go func() {
 		defer func() {
@@ -84,12 +91,13 @@ func main() {
 				break
 			}
 			go func(num int) {
-				ctx, _ := context.WithTimeout(outCtx, time.Duration(reqTimeout)*time.Second)
-				err1 := makeRequest(ctx, address, num)
-				if err1 != nil {
-					outCancel()
-				}
 				defer sem.Release(1)
+				ctx, cancelReq := context.WithTimeout(outCtx, time.Duration(reqTimeout)*time.Second)
+				defer cancelReq()
+				err1 := makeRequest(ctx, address, num)
+				if err1 != nil && errors.Is(err1, context.DeadlineExceeded) {
+					cancel()
+				}
 			}(i)
 		}
 
@@ -101,12 +109,43 @@ func main() {
 	select {
 	case <-outCtx.Done():
 		fmt.Println("The timeout specified has expired")
-		outCancel()
 		return
 	case <-done:
 		testDuration = time.Since(startTime)
 		PrintResult()
 	}
+}
+
+func makeRequest(ctx context.Context, address string, reqNimber int) error {
+
+	var curResult result
+	start := time.Now()
+	req, _ := http.NewRequestWithContext(ctx, "GET", address, nil)
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		curResult = result{time.Since(start), 0, err}
+		results[reqNimber] = &curResult
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		curResult = result{time.Since(start), 0, err}
+		results[reqNimber] = &curResult
+		return err
+	}
+
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		curResult = result{time.Since(start), 0, err}
+		results[reqNimber] = &curResult
+		return err
+	}
+	duration := time.Since(start)
+	curResult = result{duration, int64(len(b)), nil}
+	results[reqNimber] = &curResult
+	return nil
 }
 
 func PrintResult() {
@@ -189,41 +228,4 @@ func MakeSpaces(item string) string {
 		result += " "
 	}
 	return result
-}
-func makeRequest(ctx context.Context, address string, reqNimber int) error {
-	var resultChan = make(chan result)
-
-	go func() {
-		start := time.Now()
-		req, _ := http.NewRequestWithContext(ctx, "GET", address, nil)
-		resp, err := httpClient.Do(req)
-		if err != nil {
-			resultChan <- result{time.Since(start), 0, err}
-			return
-		}
-
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-			resultChan <- result{time.Since(start), 0, err}
-			return
-		}
-
-		b, err := io.ReadAll(resp.Body)
-		if err != nil {
-			resultChan <- result{time.Since(start), 0, err}
-		}
-		duration := time.Since(start)
-		resultChan <- result{duration, int64(len(b)), nil}
-	}()
-
-	select {
-	case <-ctx.Done():
-		newResilt := result{time.Duration(reqTimeout), 0, ctx.Err()}
-		results[reqNimber] = &newResilt
-		return ctx.Err()
-	case result := <-resultChan:
-		results[reqNimber] = &result
-		return nil
-	}
 }
