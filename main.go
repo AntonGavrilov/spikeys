@@ -83,6 +83,7 @@ func main() {
 		defer func() {
 			done <- struct{}{}
 		}()
+	
 		startTime = time.Now()
 		for i := 0; i < reqCount; i++ {
 			err := sem.Acquire(outCtx, 1)
