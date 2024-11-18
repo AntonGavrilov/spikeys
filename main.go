@@ -25,12 +25,12 @@ var reqCount int = 1
 var ComplitedRequest = 0
 var maxConcurrency int64 = 1
 var benchmarkTimelimit int = 30 //seconds
-var reqTimeout int = 30         //seconds
+var reqTimeout int = 30 //seconds
 var sem *semaphore.Weighted
 var results []*result
 var testDuration time.Duration
 var TotalTransferredBytes int64
-var httpClient *http.Client = &http.Client{}
+var httpClient = &http.Client{}
 
 func flagSet(f string) bool {
 	return viper.IsSet(f)
@@ -125,7 +125,7 @@ func makeRequest(ctx context.Context, address string, reqNimber int) error {
 
 	var curResult result
 	start := time.Now()
-	req, _ := http.NewRequestWithContext(ctx, "GET", address, nil)
+	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, address, nil)
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		curResult = result{time.Since(start), 0, err}
@@ -141,14 +141,14 @@ func makeRequest(ctx context.Context, address string, reqNimber int) error {
 		return err
 	}
 
-	b, err := io.ReadAll(resp.Body)
+	content, err := io.ReadAll(resp.Body)
 	if err != nil {
 		curResult = result{time.Since(start), 0, err}
 		results[reqNimber] = &curResult
 		return err
 	}
 	duration := time.Since(start)
-	curResult = result{duration, int64(len(b)), nil}
+	curResult = result{duration, int64(len(content)), nil}
 	results[reqNimber] = &curResult
 	return nil
 }
