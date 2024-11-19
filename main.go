@@ -136,7 +136,7 @@ func makeRequest(ctx context.Context, address string, reqNimber int) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		curResult = result{time.Since(start), 0, err}
+		curResult = result{time.Since(start), 0, errors.New("not ok error")}
 		results[reqNimber] = &curResult
 		return err
 	}
