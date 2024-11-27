@@ -1,6 +1,6 @@
 # Настройки
 APP_NAME := spikeys
-SRC_DIR := .
+SRC_DIR := ./cmd/spikeys
 BUILD_DIR := build
 LINTER := golangci-lint
 LINT_FLAGS := run --timeout=5m -E revive
