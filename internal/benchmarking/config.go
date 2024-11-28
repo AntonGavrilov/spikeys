@@ -28,18 +28,17 @@ func LoadConfig(args []string, flagset *pflag.FlagSet, config *BenchmarkConfig) 
 	var maxConcurrency int
 	var requestTimeout int
 	var benchmarkTimeout int
-	pflag.CommandLine = flagset
 
-	pflag.IntVarP(&requestCount, "requests", "n", DefaultRequestCount, "Request count")
-	pflag.IntVarP(&maxConcurrency, "concurrency", "c", DefaultMaxConcurrency, "Number of parallel requests")
-	pflag.IntVarP(&benchmarkTimeout, "timelimit", "t", DefaultBenchmarkTimeout, "Benchmark timeout (seconds)")
-	pflag.IntVarP(&requestTimeout, "timeout", "s", DefaultRequestTimeout, "Request timeout (seconds)")
+	flagset.IntVarP(&requestCount, "requests", "n", DefaultRequestCount, "Request count")
+	flagset.IntVarP(&maxConcurrency, "concurrency", "c", DefaultMaxConcurrency, "Number of parallel requests")
+	flagset.IntVarP(&benchmarkTimeout, "timelimit", "t", DefaultBenchmarkTimeout, "Benchmark timeout (seconds)")
+	flagset.IntVarP(&requestTimeout, "timeout", "s", DefaultRequestTimeout, "Request timeout (seconds)")
 
-	if err := pflag.CommandLine.Parse(args[1:]); err != nil {
+	if err := flagset.Parse(args[1:]); err != nil {
 		return fmt.Errorf("error parsing flags: %w", err)
 	}
 
-	positionalArgs := pflag.Args()
+	positionalArgs := flagset.Args()
 	if len(positionalArgs) < 1 {
 		return fmt.Errorf("missing positional argument: target URL")
 	}
