@@ -18,16 +18,14 @@ func TestRunBenchmark_Success(t *testing.T) {
 	}))
 	defer server.Close()
 
-	config := BecnhmarkConfig{
+	config := BenchmarkConfig{
 		RequestCount:     5,
 		MaxConcurrency:   2,
 		RequestTimeout:   1 * time.Second,
 		BenchmarkTimeout: 30 * time.Second,
 		URL:              server.URL,
 	}
-	client := &http.Client{}
-
-	result, err := RunBenchmark(client, config)
+	result, err := RunBenchmark(config)
 	assert.NoError(t, err)
 	assert.Equal(t, 5, len(result.Results))
 	assert.True(t, result.Duration > 0)
@@ -46,16 +44,14 @@ func TestRunBenchmark_RequestTimeout(t *testing.T) {
 	}))
 	defer server.Close()
 
-	config := BecnhmarkConfig{
+	config := BenchmarkConfig{
 		RequestCount:     3,
 		MaxConcurrency:   2,
 		RequestTimeout:   500 * time.Millisecond,
 		BenchmarkTimeout: 30 * time.Second,
 		URL:              server.URL,
 	}
-	client := &http.Client{}
-
-	result, err := RunBenchmark(client, config)
+	result, err := RunBenchmark(config)
 	assert.ErrorIs(t, err, ErrRequestTimeoutExceeded)
 	assert.Equal(t, 0, len(result.Results))
 }
@@ -67,17 +63,15 @@ func TestRunBenchmark_BenchmarkTimeout(t *testing.T) {
 	}))
 	defer server.Close()
 
-	config := BecnhmarkConfig{
+	config := BenchmarkConfig{
 		RequestCount:     3,
 		MaxConcurrency:   2,
 		RequestTimeout:   3 * time.Second,
 		BenchmarkTimeout: 1 * time.Second,
 		URL:              server.URL,
 	}
-	client := &http.Client{}
 
-	result, err := RunBenchmark(client, config)
+	result, err := RunBenchmark(config)
 	assert.ErrorIs(t, err, ErrBenchmarkTimeoutExcceded)
 	assert.Equal(t, 0, len(result.Results))
 }
-

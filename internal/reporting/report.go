@@ -7,12 +7,6 @@ import (
 	"github.com/AntonGavrilov/spikeys/internal/benchmarking"
 )
 
-type Result struct {
-	Duration time.Duration
-	Bytes    int64
-	Error    error
-}
-
 type Summary struct {
 	CompletedRequests  int64
 	FailedRequests     int64

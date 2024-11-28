@@ -22,10 +22,11 @@ type Result struct {
 	Duration time.Duration
 }
 
-func RunBenchmark(client *http.Client, config BecnhmarkConfig) (Result, error) {
+func RunBenchmark(config BenchmarkConfig) (Result, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), config.BenchmarkTimeout)
 	defer cancel()
 
+	client := &http.Client{}
 	sem := semaphore.NewWeighted(int64(config.MaxConcurrency))
 	results := make([]*RequestResult, config.RequestCount)
 
