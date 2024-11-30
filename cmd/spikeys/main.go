@@ -22,8 +22,8 @@ func main() {
 		}
 		os.Exit(1)
 	}
-
-	result, err := benchmarking.RunBenchmark(config)
+	benchmarker := benchmarking.NewBenchmarker(benchmarking.DefaultRequestPerformer{})
+	result, err := benchmarker.Run(config)
 
 	if err != nil {
 		if errors.Is(err, benchmarking.ErrBenchmarkTimeoutExcceded) ||

@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestLoadConfigURLErr(t *testing.T) {
@@ -16,7 +17,7 @@ func TestLoadConfigURLErr(t *testing.T) {
 	flagSet := pflag.NewFlagSet("benchmark", pflag.ContinueOnError)
 
 	err := LoadConfig(args1, flagSet, config)
-	assert.ErrorContains(t, err, "missing positional argument: target URL")
+	require.ErrorContains(t, err, "missing positional argument: target URL")
 	assert.Empty(t, config)
 }
 
@@ -26,7 +27,7 @@ func TestLoadConfigInvalidURLErr(t *testing.T) {
 	args1 := []string{"file", "invalidurl.com"}
 	flagSet := pflag.NewFlagSet("benchmark", pflag.ContinueOnError)
 	err := LoadConfig(args1, flagSet, config)
-	assert.ErrorContains(t, err, "invalid URL:")
+	require.ErrorContains(t, err, "invalid URL:")
 	assert.Empty(t, config)
 
 }
@@ -40,21 +41,21 @@ func TestLoadConfigDefaultParametersSetting(t *testing.T) {
 
 	err := LoadConfig(args1, flagSet, config)
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, config)
 
-	assert.Equal(t, config.BenchmarkTimeout, time.Duration(DefaultBenchmarkTimeout)*time.Second)
-	assert.Equal(t, config.RequestTimeout, time.Duration(DefaultRequestTimeout)*time.Second)
-	assert.Equal(t, config.MaxConcurrency, DefaultMaxConcurrency)
-	assert.Equal(t, config.RequestCount, DefaultRequestCount)
+	assert.Equal(t, time.Duration(DefaultBenchmarkTimeout)*time.Second, config.BenchmarkTimeout)
+	assert.Equal(t, time.Duration(DefaultRequestTimeout)*time.Second, config.RequestTimeout)
+	assert.Equal(t, DefaultMaxConcurrency, config.MaxConcurrency)
+	assert.Equal(t, DefaultRequestCount, config.RequestCount)
 }
 
-func TestParseArgs(t *testing.T) {
+func TestLoadBecnhmarkConfigParseArgs(t *testing.T) {
 	tests := []struct {
-		name           string          // Имя теста
-		args           []string        // Аргументы
-		expectedError  string          // Ожидаемая ошибка (если есть)
-		expectedConfig BenchmarkConfig // Ожидаемая конфигурация
+		name           string          
+		args           []string        
+		expectedError  string          
+		expectedConfig BenchmarkConfig 
 	}{
 		{
 			name: "Valid input with all flags",
@@ -122,9 +123,9 @@ func TestParseArgs(t *testing.T) {
 			err := LoadConfig(tt.args, flagSet, &config)
 
 			if tt.expectedError != "" {
-				assert.ErrorContains(t, err, tt.expectedError)
+				require.ErrorContains(t, err, tt.expectedError)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.Equal(t, tt.expectedConfig, config)
 			}
 		})

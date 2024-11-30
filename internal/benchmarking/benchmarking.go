@@ -16,17 +16,30 @@ type RequestResult struct {
 	Bytes    int64
 	Error    error
 }
-
 type Result struct {
 	Results  []*RequestResult
 	Duration time.Duration
 }
 
-func RunBenchmark(config BenchmarkConfig) (Result, error) {
+type DefaultBenchmarker struct {
+	preformer RequsetPreformer
+}
+
+func NewBenchmarker(preformer RequsetPreformer) DefaultBenchmarker {
+	return DefaultBenchmarker{preformer}
+}
+
+type RequsetPreformer interface {
+	preformRequest(ctx context.Context, address string) RequestResult
+}
+type DefaultRequestPerformer struct {
+	HTTPClient *http.Client
+}
+
+func (b *DefaultBenchmarker) Run(config BenchmarkConfig) (Result, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), config.BenchmarkTimeout)
 	defer cancel()
 
-	client := &http.Client{}
 	sem := semaphore.NewWeighted(int64(config.MaxConcurrency))
 	results := make([]*RequestResult, config.RequestCount)
 
@@ -49,7 +62,7 @@ func RunBenchmark(config BenchmarkConfig) (Result, error) {
 				defer sem.Release(1)
 				ctx, cancelReq := context.WithTimeout(ctx, config.RequestTimeout)
 				defer cancelReq()
-				result := preformRequest(ctx, client, config.URL)
+				result := b.preformer.preformRequest(ctx, config.URL)
 				if result.Error != nil && errors.Is(result.Error, context.DeadlineExceeded) {
 					reqTimeoutChan <- struct{}{}
 					cancel()
@@ -71,10 +84,10 @@ func RunBenchmark(config BenchmarkConfig) (Result, error) {
 	}
 }
 
-func preformRequest(ctx context.Context, client *http.Client, address string) RequestResult {
+func (benchmarker DefaultRequestPerformer) preformRequest(ctx context.Context, address string) RequestResult {
 	start := time.Now()
 	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, address, nil)
-	resp, err := client.Do(req)
+	resp, err := benchmarker.HTTPClient.Do(req)
 	if err != nil {
 		return RequestResult{time.Since(start), 0, err}
 	}
