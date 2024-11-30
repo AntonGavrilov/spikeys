@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"os"
 
 	"github.com/AntonGavrilov/spikeys/internal/benchmarking"
@@ -22,7 +23,9 @@ func main() {
 		}
 		os.Exit(1)
 	}
-	benchmarker := benchmarking.NewBenchmarker(benchmarking.DefaultRequestPerformer{})
+	benchmarker := benchmarking.NewBenchmarker(
+		benchmarking.DefaultRequestPerformer{
+			HTTPClient: &http.Client{}})
 	result, err := benchmarker.Run(config)
 
 	if err != nil {
