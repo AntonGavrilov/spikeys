@@ -34,7 +34,7 @@ func TestRunBenchmark_Success(t *testing.T) {
 	result, err := benchmarker.Run(config)
 
 	require.NoError(t, err)
-	assert.Len(t, result.Results, 5 )
+	assert.Len(t, result.Results, 5)
 	assert.Positive(t, result.Duration)
 
 	for _, res := range result.Results {
@@ -101,7 +101,7 @@ func TestRunBenchmark_MaxConcurrency(t *testing.T) {
 		RequestCount:     requestCount,
 		URL:              "http://example.com",
 	}
-	m := RequestResult{
+	result := RequestResult{
 		Duration: 50 * time.Millisecond,
 		Bytes:    100,
 		Error:    nil,
@@ -120,7 +120,7 @@ func TestRunBenchmark_MaxConcurrency(t *testing.T) {
 		mu.Lock()
 		currentActiveGoroutines--
 		mu.Unlock()
-	}).Return(m)
+	}).Return(result)
 	b := NewBenchmarker(p)
 	_, err := b.Run(config)
 
@@ -139,19 +139,20 @@ func TestRunBenchmark_RequestsWithErrorsShouldContainsInResult(t *testing.T) {
 		RequestCount:     5,
 		URL:              "http://example.com",
 	}
-	p := new(RequestPerformerMock)
+	performerMock := new(RequestPerformerMock)
 	rs := RequestResult{Error: errors.New("error")}
-	p.On("preformRequest", mock.Anything, mock.Anything).Return(rs)
-	b := NewBenchmarker(p)
+	performerMock.On("preformRequest", mock.Anything, mock.Anything).Return(rs)
+	benchmarker := NewBenchmarker(performerMock)
 
-	result, err := b.Run(config)
+	result, err := benchmarker.Run(config)
 	require.NoError(t, err, "Benchmark execution should not fail")
 	assert.Len(t, result.Results, requestCount, "Results should contain exactly %d entries", requestCount)
 	for i, res := range result.Results {
 		require.NotNil(t, res, "Result %d is nil", i)
 		require.Error(t, res.Error, "Result %d should have an error", i)
 	}
-	p.AssertNumberOfCalls(t, "preformRequest", requestCount)
+	performerMock.AssertExpectations(t)
+	performerMock.AssertNumberOfCalls(t, "preformRequest", requestCount)
 }
 
 type RequestPerformerMock struct {

@@ -2,14 +2,14 @@
 APP_NAME := spikeys
 SRC_DIR := ./cmd/spikeys
 BUILD_DIR := build
-LINTER := golangci-lint
-LINT_FLAGS := run --timeout=5m -E revive
+LINTER := golangci-lint  
+LINT_FLAGS := run 
 
 # Список целей
-.PHONY: all lint test build clean run
+.PHONY: all lint test build clean run cover
 
 # Цель по умолчанию
-all: lint test build
+all: lint test cover build
 
 # Линтинг кода
 lint:
@@ -36,3 +36,6 @@ clean:
 run: build
 	@echo "===> Запуск приложения..."
 	@./$(BUILD_DIR)/$(APP_NAME)
+cover:
+	@echo "===> Покрытие тестов..."
+	@go tool cover -html=./tmp/coverage.out -o ./tmp/coverage.html	

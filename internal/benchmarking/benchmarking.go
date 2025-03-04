@@ -3,6 +3,7 @@ package benchmarking
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"sync"
@@ -22,14 +23,14 @@ type Result struct {
 }
 
 type DefaultBenchmarker struct {
-	preformer RequsetPreformer
+	performer RequestPerformer
 }
 
-func NewBenchmarker(preformer RequsetPreformer) DefaultBenchmarker {
+func NewBenchmarker(preformer RequestPerformer) DefaultBenchmarker {
 	return DefaultBenchmarker{preformer}
 }
 
-type RequsetPreformer interface {
+type RequestPerformer interface {
 	preformRequest(ctx context.Context, address string) RequestResult
 }
 type DefaultRequestPerformer struct {
@@ -58,11 +59,13 @@ func (b *DefaultBenchmarker) Run(config BenchmarkConfig) (Result, error) {
 			}
 			wg.Add(1)
 			go func(num int) {
-				defer wg.Done()
-				defer sem.Release(1)
+				defer func() {
+					sem.Release(1)
+					wg.Done()
+				}()
 				ctx, cancelReq := context.WithTimeout(ctx, config.RequestTimeout)
 				defer cancelReq()
-				result := b.preformer.preformRequest(ctx, config.URL)
+				result := b.performer.preformRequest(ctx, config.URL)
 				if result.Error != nil && errors.Is(result.Error, context.DeadlineExceeded) {
 					reqTimeoutChan <- struct{}{}
 					cancel()
@@ -84,15 +87,24 @@ func (b *DefaultBenchmarker) Run(config BenchmarkConfig) (Result, error) {
 	}
 }
 
-func (benchmarker DefaultRequestPerformer) preformRequest(ctx context.Context, address string) RequestResult {
+func (performer DefaultRequestPerformer) preformRequest(ctx context.Context, address string) RequestResult {
 	start := time.Now()
-	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, address, nil)
-	resp, err := benchmarker.HTTPClient.Do(req)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, address, nil)
+
+	if err != nil {
+		return RequestResult{time.Since(start), 0, err}
+	}
+	resp, err := performer.HTTPClient.Do(req)
 	if err != nil {
 		return RequestResult{time.Since(start), 0, err}
 	}
 
-	defer resp.Body.Close()
+	defer func() {
+		err := resp.Body.Close()
+		if err != nil {
+			fmt.Printf("failed to close response: %v\n", err)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return RequestResult{time.Since(start), 0, errors.New("not ok error")}

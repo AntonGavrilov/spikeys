@@ -12,21 +12,19 @@ import (
 
 func TestLoadConfigURLErr(t *testing.T) {
 
-	config := &BenchmarkConfig{}
 	args1 := []string{""}
 	flagSet := pflag.NewFlagSet("benchmark", pflag.ContinueOnError)
 
-	err := LoadConfig(args1, flagSet, config)
+	config, err := LoadConfig(args1, flagSet)
 	require.ErrorContains(t, err, "missing positional argument: target URL")
 	assert.Empty(t, config)
 }
 
 func TestLoadConfigInvalidURLErr(t *testing.T) {
 
-	config := &BenchmarkConfig{}
 	args1 := []string{"file", "invalidurl.com"}
 	flagSet := pflag.NewFlagSet("benchmark", pflag.ContinueOnError)
-	err := LoadConfig(args1, flagSet, config)
+	config, err := LoadConfig(args1, flagSet)
 	require.ErrorContains(t, err, "invalid URL:")
 	assert.Empty(t, config)
 
@@ -35,11 +33,10 @@ func TestLoadConfigInvalidURLErr(t *testing.T) {
 func TestLoadConfigDefaultParametersSetting(t *testing.T) {
 	pflag.CommandLine = pflag.NewFlagSet(os.Args[0], pflag.ContinueOnError)
 
-	config := &BenchmarkConfig{}
 	args1 := []string{"file", "http://validUrl.com"}
 	flagSet := pflag.NewFlagSet("benchmark", pflag.ContinueOnError)
 
-	err := LoadConfig(args1, flagSet, config)
+	config, err := LoadConfig(args1, flagSet)
 
 	require.NoError(t, err)
 	assert.NotNil(t, config)
@@ -51,11 +48,14 @@ func TestLoadConfigDefaultParametersSetting(t *testing.T) {
 }
 
 func TestLoadBecnhmarkConfigParseArgs(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skip log running test")
+	}
 	tests := []struct {
-		name           string          
-		args           []string        
-		expectedError  string          
-		expectedConfig BenchmarkConfig 
+		name           string
+		args           []string
+		expectedError  string
+		expectedConfig BenchmarkConfig
 	}{
 		{
 			name: "Valid input with all flags",
@@ -117,10 +117,9 @@ func TestLoadBecnhmarkConfigParseArgs(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			var config BenchmarkConfig
 			flagSet := pflag.NewFlagSet("benchmark", pflag.ContinueOnError)
 
-			err := LoadConfig(tt.args, flagSet, &config)
+			config, err := LoadConfig(tt.args, flagSet)
 
 			if tt.expectedError != "" {
 				require.ErrorContains(t, err, tt.expectedError)

@@ -12,9 +12,8 @@ import (
 )
 
 func main() {
-	config := benchmarking.BenchmarkConfig{}
 	flagSet := pflag.NewFlagSet("benchmark", pflag.ContinueOnError)
-	err := benchmarking.LoadConfig(os.Args, flagSet, &config)
+	config, err := benchmarking.LoadConfig(os.Args, flagSet)
 
 	if err != nil {
 		if !errors.Is(err, pflag.ErrHelp) {

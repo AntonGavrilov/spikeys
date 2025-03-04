@@ -23,7 +23,7 @@ type BenchmarkConfig struct {
 	URL              string
 }
 
-func LoadConfig(args []string, flagset *pflag.FlagSet, config *BenchmarkConfig) error {
+func LoadConfig(args []string, flagset *pflag.FlagSet) (BenchmarkConfig, error) {
 	var requestCount int
 	var maxConcurrency int
 	var requestTimeout int
@@ -33,40 +33,39 @@ func LoadConfig(args []string, flagset *pflag.FlagSet, config *BenchmarkConfig) 
 	flagset.IntVarP(&maxConcurrency, "concurrency", "c", DefaultMaxConcurrency, "Number of parallel requests")
 	flagset.IntVarP(&benchmarkTimeout, "timelimit", "t", DefaultBenchmarkTimeout, "Benchmark timeout (seconds)")
 	flagset.IntVarP(&requestTimeout, "timeout", "s", DefaultRequestTimeout, "Request timeout (seconds)")
-
 	if err := flagset.Parse(args[1:]); err != nil {
-		return fmt.Errorf("error parsing flags: %w", err)
+		return BenchmarkConfig{}, fmt.Errorf("error parsing flags: %w", err)
 	}
 
 	positionalArgs := flagset.Args()
 	if len(positionalArgs) < 1 {
-		return fmt.Errorf("missing positional argument: target URL")
+		return BenchmarkConfig{}, fmt.Errorf("missing positional argument: target URL")
 	}
 
 	address := positionalArgs[0]
 	url, err := url.ParseRequestURI(address)
 	if err != nil || url.Scheme == "" || url.Host == "" {
-		return fmt.Errorf("invalid URL: %s", address)
+		return BenchmarkConfig{}, fmt.Errorf("invalid URL: %s", address)
 	}
 
 	if requestCount <= 0 {
-		return fmt.Errorf("invalid request count: must be greater than 0")
+		return BenchmarkConfig{}, fmt.Errorf("invalid request count: must be greater than 0")
 	}
 	if maxConcurrency <= 0 {
-		return fmt.Errorf("invalid concurrency: must be greater than 0")
+		return BenchmarkConfig{}, fmt.Errorf("invalid concurrency: must be greater than 0")
 	}
 	if benchmarkTimeout <= 0 {
-		return fmt.Errorf("invalid benchmark timeout: must be greater than 0")
+		return BenchmarkConfig{}, fmt.Errorf("invalid benchmark timeout: must be greater than 0")
 	}
 	if requestTimeout <= 0 {
-		return fmt.Errorf("invalid request timeout: must be greater than 0")
+		return BenchmarkConfig{}, fmt.Errorf("invalid request timeout: must be greater than 0")
 	}
-
+	config := BenchmarkConfig{}
 	config.URL = address
 	config.BenchmarkTimeout = time.Duration(benchmarkTimeout) * time.Second
 	config.RequestTimeout = time.Duration(requestTimeout) * time.Second
 	config.MaxConcurrency = maxConcurrency
 	config.RequestCount = requestCount
 
-	return nil
+	return config, nil
 }

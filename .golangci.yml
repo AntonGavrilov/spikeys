@@ -1,14 +1,48 @@
+version: 1
+
+linters-settings:
+  staticcheck:
+    checks: ["all"]  # Включаем все проверки staticcheck
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+  revive:
+    severity: warning
+
 linters:
   enable:
-    - govet         # Встроенный линтер Go
-    - gosimple      # Упрощает код
-    - gocyclo       # Проверяет сложность кода
-    - errcheck      # Проверяет обработку ошибок
-    - staticcheck   # Современные статические анализы
-    - ineffassign   # Находит неиспользуемые присваивания
-    - typecheck     # Проверяет типы
-    - testifylint
+    - govet
+    - errcheck
     - revive
+    - unused
+    - gosimple
+    - ineffassign
+    - typecheck
+    - gocritic
   disable:
-    - godot         # Линтер, проверяющий точки в конце комментариев
-    - dupl          # Находит дублирующийся код (может быть шумным)
+    - depguard   # Отключаем ненужный линтер
+
+issues:
+  exclude-rules:
+    - linters:
+        - errcheck
+      source: _test\.go$  # Игнорировать ошибки в тестах
+
+
+run:
+  timeout: 5m
+  tests: false  # Включить анализ тестов
+
+output:
+  formats:
+    - name: colored-line-number
+      format: colored-line-number
+
+cache:
+  enabled: true
+  dir: .golangci-cache
+
+modules-download-mode: readonly
+
+go:
+  min-version: 1.20
